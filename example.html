@@ -26,6 +26,7 @@ body {
 
 var xdata = [];
 var ydata = []; 
+var labels = [];
 
 function fetch_data() {
   return $.ajax({
@@ -35,18 +36,19 @@ function fetch_data() {
    cache: false,
    crossDomain: true,
    }).done( function(data) {
-     // console.log(data);
+     console.log(data);
      // console.log("First normal ",data.rows[0].value.normal);
      // console.log("First tumor  ",data.rows[0].value.tumor)
      for (i in data.rows) {
        // console.log(i,"normal: ",data.rows[i].value.normal);
        xdata.push(data.rows[i].value.tumor);
        ydata.push(data.rows[i].value.normal);
+ 
      } 
      // console.log(xdata);
 })};
 
-fetch_data();
+// Global initialisations
 
 var margin = {top: 20, right: 20, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
@@ -59,6 +61,20 @@ var y = d3.scale.linear()
     .range([height, 0]);
 
 var color = d3.scale.category10();
+
+// the chart object, includes all margins
+var chart = d3.select('body')
+  .append('svg:svg')
+  .attr('width', width + margin.right + margin.left)
+  .attr('height', height + margin.top + margin.bottom)
+  .attr('class', 'chart')
+
+// the main object where the chart and axis will be drawn
+var main = chart.append('g')
+  .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+  .attr('width', width)
+  .attr('height', height)
+  .attr('class', 'main') ;
 
 var xAxis = d3.svg.axis()
     .scale(x)
@@ -74,79 +90,63 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.tsv("x.tsv", function(error, data) {
-  data.forEach(function(d) {
-    d.sepalLength = +d.sepalLength;
-    d.sepalWidth = +d.sepalWidth;
-  });
-
-  x.domain(d3.extent(data, function(d) { return d.sepalWidth; })).nice();
-  y.domain(d3.extent(data, function(d) { return d.sepalLength; })).nice();
-
-  main = svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis)
-    .append("text")
-      .attr("class", "label")
-      .attr("x", width)
-      .attr("y", -6)
-      .style("text-anchor", "end")
-      .text("Sepal Width (cm)");
-
-  svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-    .append("text")
-      .attr("class", "label")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("Sepal Length (cm)")
-
-  svg.selectAll(".dot")
-      .data(data)
-    .enter().append("circle")
-      .attr("class", "dot")
-      .attr("r", 3.0)
-      .attr("cx", function(d) { return x(d.sepalWidth); })
-      .attr("cy", function(d) { return y(d.sepalLength); })
-      .style("fill", function(d) { return color(d.species); });
-
-  var legend = svg.selectAll(".legend")
-      .data(color.domain())
-    .enter().append("g")
-      .attr("class", "legend")
-      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
-
-  legend.append("rect")
-      .attr("x", width - 18)
-      .attr("width", 18)
-      .attr("height", 18)
-      .style("fill", color);
-
-  legend.append("text")
-      .attr("x", width - 24)
-      .attr("y", 9)
-      .attr("dy", ".35em")
-      .style("text-anchor", "end")
-      .text(function(d) { return d; });
-
-});
-
-
 xdata.length = 0;
 ydata.length = 0;
 
 var rescale = function() {
+  x = d3.scale.linear()
+            .domain([0, d3.max(xdata)])  // the range of the values to plot
+            .range([ 0, width ]);        // the pixel range of the x-axis
+
+  y = d3.scale.linear()
+            .domain([0, d3.max(ydata)])
+            .range([ height, 0 ]);
+
+  // draw the x axis
+  var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient('bottom');
+
+  main.append('g')
+  .attr('transform', 'translate(0,' + height + ')')
+  .attr('class', 'main axis date')
+  .style({ 'stroke': 'Black', 'fill': 'none', 'stroke-width': '1px'})
+  .call(xAxis);
+
+  // draw the y axis
+  var yAxis = d3.svg.axis()
+  .scale(y)
+  .orient('left');
+
+  main.append('g')
+    .attr('transform', 'translate(0,0)')
+    .attr('class', 'main axis date')
+    .style({ 'stroke': 'Black', 'fill': 'none', 'stroke-width': '1px'})
+    .call(yAxis);
 }
 
 var refresh = function() {
+
+ //Create Title 
+  main.append("text")
+    .attr("x", width / 2 )
+    .attr("y", -10)
+    .style("text-anchor", "middle")
+    .text("My title");
+
+  var dots = g.selectAll("scatter-dots")
+    .data(ydata)  // using the values in the ydata array
+    .enter().append("svg:circle")  // create a new circle for each value
+        .attr("cy", function (d) { return y(d); } ) // translate y value to a pixel
+        .attr("cx", function (d,i) { return x(xdata[i]); } ) // translate x value
+        .attr("r", 4) // radius of circle
+        .attr("fill", function(d,i) { return color.range()[0]; }) 
+        .append("svg:title")
+        .style("opacity", 0.6); // opacity of circle
+        // .text(function(d,i) { return labels[i]; })
 }  
 
-// draw the graph object
-// var g = main.append("svg:g"); 
+var g = main.append("svg:g"); 
 
 $.when( fetch_data() )
   .then( function() { 
@@ -154,7 +154,5 @@ $.when( fetch_data() )
     rescale();
     refresh()
   } );
-
-
 
 </script>
