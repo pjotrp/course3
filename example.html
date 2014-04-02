@@ -140,7 +140,7 @@ var refresh = function() {
         .attr("cy", function (d) { return y(d); } ) // translate y value to a pixel
         .attr("cx", function (d,i) { return x(xdata[i]); } ) // translate x value
         .attr("r", 4) // radius of circle
-        .attr("fill", function(d,i) { return color.range()[0]; }) 
+        .attr("fill", function(d,i) { return color.range()[1]; }) 
         .append("svg:title")
         .style("opacity", 0.6); // opacity of circle
         // .text(function(d,i) { return labels[i]; })
@@ -150,7 +150,7 @@ var g = main.append("svg:g");
 
 $.when( fetch_data() )
   .then( function() { 
-    console.log('Total hits: ',xdata.length) ; 
+    console.log('Total tumor-normal pairs: ',xdata.length) ; 
     rescale();
     refresh()
   } );
